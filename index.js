@@ -2,8 +2,9 @@ const $ = (selector) => document.querySelector(selector);
 const $$ = (selector) => [...document.querySelectorAll(selector)];
 
 const openModal = (modalId, previousModalId) => {
-  if (modalId === previousModalId) return;
-  console.log({ modalId, previousModalId });
+  // loose equality to skip undefined
+  if (modalId == previousModalId) return;
+  console.log('dont return');
 };
 
 const initialState = {
@@ -11,25 +12,19 @@ const initialState = {
   hash: null,
 };
 
-// Expose to window so it would be reachable with inline scripts
-window.state = new Proxy(initialState, {
+export const state = new Proxy(initialState, {
   set(state, key, value) {
     const previousValue = state[key];
 
-    state[key] = value;
-
-    switch (key) {
-      case 'activeModalId':
-        return openModal(value, previousValue);
-      case 'hash': {
-        console.log('hash');
-        return;
-      }
-      default: {
-        console.log('Unhandled state key: ', key);
-        return;
-      }
+    if (key === 'activeModalId') {
+      openModal(value, previousValue);
     }
+
+    if (key === 'hash') {
+      console.log('hash');
+    }
+
+    state[key] = value;
   },
 });
 
@@ -38,12 +33,13 @@ const clickHandler = (event) => {
 
   const closest = event.target.closest.bind(event.target);
 
-  const $modalTrigger = closest('[data-modal-trigger]');
-
-  if ($modalTrigger) state.activeModalId = $modalTrigger.dataset.modalTrigger;
+  state.activeModalId = closest('[data-modal-trigger]')?.dataset?.modalTrigger;
 };
 
 const hashchangeHandler = () => (state.hash = window.location.hash);
 
 window.addEventListener('click', clickHandler, true);
 window.addEventListener('hashchange', hashchangeHandler, true);
+
+// Expose state to window so it would be reachable with inline scripts
+window.state = state;
